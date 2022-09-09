@@ -5,6 +5,7 @@ import com.google.cloud.tools.jib.event.EventHandlers;
 import com.google.cloud.tools.jib.http.FailoverHttpClient;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 
 @Accessors(chain = true)
@@ -16,6 +17,7 @@ public class RegistryClientFactoryProperties {
     String sourceImageName;
     FailoverHttpClient httpClient;
     String username;
+    @ToString.Exclude
     String password;
 
     RegistryClient build() {
@@ -24,7 +26,11 @@ public class RegistryClientFactoryProperties {
                         imageName,
                         sourceImageName,
                         httpClient)
-                .setCredential(username != null && password != null ? Credential.from(username, password) : null)
+                .setCredential(hasCredentials() ? Credential.from(username, password) : null)
                 .newRegistryClient();
+    }
+
+    public boolean hasCredentials() {
+        return username != null && password != null;
     }
 }

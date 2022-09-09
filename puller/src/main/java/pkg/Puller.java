@@ -27,22 +27,17 @@ import java.util.zip.GZIPInputStream;
 
 @Slf4j
 public class Puller {
+    private final RegistryClient registryClient;
+
+    public Puller(RegistryClient registryClient) {
+        this.registryClient = registryClient;
+    }
+
     @SuppressWarnings("SameParameterValue")
     @SneakyThrows
     void pull(ImageReference imageReference, String filename, String outputLocation) {
         log.debug("pulling {}", imageReference);
         Cache cache = Cache.withDirectory(Path.of("/tmp/puller"));
-
-        RegistryClient registryClient =
-                new RegistryClientFactoryProperties()
-                        .setEventHandlers(EventHandlers.builder().build())
-                        .setServerUrl(imageReference.getRegistry())
-                        .setImageName(imageReference.getRepository())
-                        .setSourceImageName(null)
-                        .setHttpClient(new FailoverHttpClient(true,
-                                true,
-                                e -> log.trace("http client log event: {}", e)))
-                        .build();
 
         ManifestAndDigest<ManifestTemplate> manifest =
                 registryClient.pullManifest(imageReference.getTag().orElse("latest"));
