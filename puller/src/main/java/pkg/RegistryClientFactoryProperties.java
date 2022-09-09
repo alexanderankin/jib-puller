@@ -1,5 +1,6 @@
 package pkg;
 
+import com.google.cloud.tools.jib.api.Credential;
 import com.google.cloud.tools.jib.event.EventHandlers;
 import com.google.cloud.tools.jib.http.FailoverHttpClient;
 import com.google.cloud.tools.jib.registry.RegistryClient;
@@ -14,6 +15,8 @@ public class RegistryClientFactoryProperties {
     String imageName;
     String sourceImageName;
     FailoverHttpClient httpClient;
+    String username;
+    String password;
 
     RegistryClient build() {
         return RegistryClient.factory(eventHandlers,
@@ -21,6 +24,7 @@ public class RegistryClientFactoryProperties {
                         imageName,
                         sourceImageName,
                         httpClient)
+                .setCredential(username != null && password != null ? Credential.from(username, password) : null)
                 .newRegistryClient();
     }
 }
