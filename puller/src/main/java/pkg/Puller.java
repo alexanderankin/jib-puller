@@ -15,7 +15,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
-import java.io.*;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -56,32 +57,28 @@ public class Puller {
             PipedInputStream pipedInputStream = new PipedInputStream();
             pipedOutputStream.connect(pipedInputStream);
 
-            /*
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            cachedLayer.getBlob().writeTo(bos);
-            byte[] bytes = bos.toByteArray();
-            */
             cachedLayer.getBlob().writeTo(pipedOutputStream);
             CountDownLatch countDownLatch = new CountDownLatch(1);
 
             new Thread(new Runnable() {
                 @SneakyThrows
                 public void run() {
-            GZIPInputStream zipInputStream = new GZIPInputStream(pipedInputStream);
-            TarArchiveInputStream t = new TarArchiveInputStream(zipInputStream);
-            t.getNextTarEntry();
-            byte[] entryBytes = t.readAllBytes();
+                    GZIPInputStream zipInputStream = new GZIPInputStream(pipedInputStream);
+                    TarArchiveInputStream t = new TarArchiveInputStream(zipInputStream);
+                    t.getNextTarEntry();
+                    byte[] entryBytes = t.readAllBytes();
 
-            // for debugging purposes
-            log.debug("bytes.length: " + entryBytes.length);
-            String contents = new String(entryBytes);
-            log.trace(contents);
+                    // for debugging purposes
+                    log.debug("bytes.length: " + entryBytes.length);
+                    String contents = new String(entryBytes);
+                    log.trace(contents);
 
-            Files.write(Path.of("data"), entryBytes);
-            log.debug(System.lineSeparator() + new String(Runtime.getRuntime().exec("md5sum data make-sample-image/sample.txt").getInputStream().readAllBytes()));
+                    Files.write(Path.of("data"), entryBytes);
+                    log.debug(System.lineSeparator() + new String(Runtime.getRuntime().exec("md5sum data make-sample-image/sample.txt").getInputStream().readAllBytes()));
 
-                countDownLatch.countDown();
-            }}).start();
+                    countDownLatch.countDown();
+                }
+            }).start();
             countDownLatch.await();
         }
     }
