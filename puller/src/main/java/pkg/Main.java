@@ -8,8 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 public class Main {
     @SneakyThrows
     public static void main(String[] args) {
-        ImageReference image = ImageReference.parse("localhost:5000/image");
+        ImageReference imageReference = ImageReference.parse("localhost:5000/sample:latest");
+        System.out.println(imageReference.toStringWithQualifier());
         Puller puller = new Puller();
-        puller.pull(image);
+        puller.pull(imageReference);
     }
 }
