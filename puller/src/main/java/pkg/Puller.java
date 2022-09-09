@@ -19,6 +19,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.zip.GZIPInputStream;
@@ -66,14 +67,17 @@ public class Puller {
                     GZIPInputStream zipInputStream = new GZIPInputStream(pipedInputStream);
                     TarArchiveInputStream t = new TarArchiveInputStream(zipInputStream);
                     t.getNextTarEntry();
-                    byte[] entryBytes = t.readAllBytes();
+                    Files.copy(t, Path.of("data"), StandardCopyOption.REPLACE_EXISTING);
 
                     // for debugging purposes
+                    if (log.isTraceEnabled()) {
+                    byte[] entryBytes = Files.readAllBytes(Path.of("data"));
                     log.debug("bytes.length: " + entryBytes.length);
                     String contents = new String(entryBytes);
                     log.trace(contents);
+                    }
 
-                    Files.write(Path.of("data"), entryBytes);
+                    // Files.write(Path.of("data"), entryBytes);
                     log.debug(System.lineSeparator() + new String(Runtime.getRuntime().exec("md5sum data make-sample-image/sample.txt").getInputStream().readAllBytes()));
 
                     countDownLatch.countDown();
