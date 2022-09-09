@@ -1,0 +1,10 @@
+plugins {
+    id 'java'
+}
+
+def dir = project.projectDir
+task 'printDir' { doLast { println dir } }
+
+tasks.withType(JavaExec) {
+    it.systemProperty('projectDir', dir.toString())
+}
