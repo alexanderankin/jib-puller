@@ -11,6 +11,6 @@ public class Main {
         ImageReference imageReference = ImageReference.parse("localhost:5000/sample:latest");
         System.out.println(imageReference.toStringWithQualifier());
         Puller puller = new Puller();
-        puller.pull(imageReference);
+        puller.pull(imageReference, "abc/sample.txt", "data");
     }
 }

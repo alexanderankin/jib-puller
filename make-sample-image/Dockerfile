@@ -1,3 +1,3 @@
 FROM scratch
 
-COPY ./sample.txt /
+COPY ./sample.txt /abc/sample.txt

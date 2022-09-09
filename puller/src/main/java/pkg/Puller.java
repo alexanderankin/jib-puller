@@ -13,6 +13,7 @@ import com.google.cloud.tools.jib.registry.ManifestAndDigest;
 import com.google.cloud.tools.jib.registry.RegistryClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
 import java.io.PipedInputStream;
@@ -26,8 +27,9 @@ import java.util.zip.GZIPInputStream;
 
 @Slf4j
 public class Puller {
+    @SuppressWarnings("SameParameterValue")
     @SneakyThrows
-    void pull(ImageReference imageReference) {
+    void pull(ImageReference imageReference, String filename, String outputLocation) {
         log.debug("pulling {}", imageReference);
         Cache cache = Cache.withDirectory(Path.of("/tmp/puller"));
 
@@ -58,31 +60,35 @@ public class Puller {
             PipedInputStream pipedInputStream = new PipedInputStream();
             pipedOutputStream.connect(pipedInputStream);
 
-            cachedLayer.getBlob().writeTo(pipedOutputStream);
             CountDownLatch countDownLatch = new CountDownLatch(1);
 
             new Thread(new Runnable() {
-                @SneakyThrows
                 public void run() {
+                    try {
+                        doRun();
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                }
+
+                @SneakyThrows
+                public void doRun() {
                     GZIPInputStream zipInputStream = new GZIPInputStream(pipedInputStream);
                     TarArchiveInputStream t = new TarArchiveInputStream(zipInputStream);
-                    t.getNextTarEntry();
-                    Files.copy(t, Path.of("data"), StandardCopyOption.REPLACE_EXISTING);
-
-                    // for debugging purposes
-                    if (log.isTraceEnabled()) {
-                    byte[] entryBytes = Files.readAllBytes(Path.of("data"));
-                    log.debug("bytes.length: " + entryBytes.length);
-                    String contents = new String(entryBytes);
-                    log.trace(contents);
+                    TarArchiveEntry nextTarEntry;
+                    while ((nextTarEntry = t.getNextTarEntry()) != null) {
+                        log.debug("found entry looking for: {}, got: {}", filename, nextTarEntry.getName());
+                        if (Objects.equals(nextTarEntry.getName(), filename)) {
+                            Files.copy(t, Path.of(outputLocation), StandardCopyOption.REPLACE_EXISTING);
+                            break;
+                        }
                     }
 
-                    // Files.write(Path.of("data"), entryBytes);
                     log.debug(System.lineSeparator() + new String(Runtime.getRuntime().exec("md5sum data make-sample-image/sample.txt").getInputStream().readAllBytes()));
-
-                    countDownLatch.countDown();
                 }
             }).start();
+
+            cachedLayer.getBlob().writeTo(pipedOutputStream);
             countDownLatch.await();
         }
     }
